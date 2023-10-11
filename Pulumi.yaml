@@ -1,4 +1,4 @@
-name: iac-pulumi-fork
+name: pulumiinfra
 runtime:
   name: nodejs
   options:

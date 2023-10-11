@@ -1,4 +1,4 @@
-encryptionsalt: v1:GTZ+oHmi+bE=:v1:YMuzFwz1N8JH7E69:jTAI8YLyRzH6IN6Lnf7UJ5OW0Tv34A==
+encryptionsalt: v1:Atle3UOIe2c=:v1:b25GpZV0DS6ek0w9:XLvv7uwY3rv9cDngOQ1JZppQMhwrjg==
 config:
-  aws:profile: demo_cli
+  aws:profile: dev_cli
   aws:region: us-east-1
