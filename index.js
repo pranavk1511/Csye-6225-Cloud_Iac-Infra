@@ -3,6 +3,10 @@ const aws = require("@pulumi/aws");
 
 // Define the AWS region
 
+// Function to get the first N availability zones
+function getFirstNAvailabilityZones(data, n) {
+    return data.names.slice(0, n);
+}
 
 // Create a new VPC
 const vpc = new aws.ec2.Vpc("myVPC", {
@@ -16,9 +20,9 @@ const internetGateway = new aws.ec2.InternetGateway("myInternetGateway", {
     vpcId: vpc.id,
 });
 
-// Create public and private subnets for each availability zone
+// Query for the available Availability Zones
 aws.getAvailabilityZones().then((data) => {
-    const availabilityZones = data.names;
+    const availabilityZones = getFirstNAvailabilityZones(data, 3); // Choose the first 3 AZs if available AZs are greater than 3
 
     const publicSubnets = [];
     const privateSubnets = [];
@@ -28,7 +32,7 @@ aws.getAvailabilityZones().then((data) => {
 
         const publicSubnet = new aws.ec2.Subnet(`publicSubnet-${az}`, {
             vpcId: vpc.id,
-            cidrBlock: `10.0.${i * 2}.0/24`, // Ensure that public and private subnets have distinct IP ranges
+            cidrBlock: `10.0.${i * 2}.0/24`,
             availabilityZone: az,
             mapPublicIpOnLaunch: true,
             tags: { Name: `publicSubnet-${az}` },
@@ -36,7 +40,7 @@ aws.getAvailabilityZones().then((data) => {
 
         const privateSubnet = new aws.ec2.Subnet(`privateSubnet-${az}`, {
             vpcId: vpc.id,
-            cidrBlock: `10.0.${i * 2 + 1}.0/24`, // Ensure that public and private subnets have distinct IP ranges
+            cidrBlock: `10.0.${i * 2 + 1}.0/24`,
             availabilityZone: az,
             tags: { Name: `privateSubnet-${az}` },
         });
@@ -83,7 +87,7 @@ aws.getAvailabilityZones().then((data) => {
         destinationCidrBlock: "0.0.0.0/0",
         gatewayId: internetGateway.id,
     });
-    
+
     // Export the VPC and subnet IDs
     exports.vpcId = vpc.id;
     exports.publicSubnetIds = publicSubnets;

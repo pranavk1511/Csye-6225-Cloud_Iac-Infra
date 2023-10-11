@@ -1,1 +1,0 @@
-# iac-pulumi
