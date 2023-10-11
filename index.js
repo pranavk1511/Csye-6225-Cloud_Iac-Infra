@@ -5,7 +5,17 @@ const aws = require("@pulumi/aws");
 
 // Function to get the first N availability zones
 function getFirstNAvailabilityZones(data, n) {
-    return data.names.slice(0, n);
+    const availableAZCount = data.names.length;
+    if (availableAZCount >= n) {
+        return data.names.slice(0, n);
+    } else {
+        const availabilityZones = [];
+        for (let i = 0; i < n; i++) {
+            const az = data.names[i % availableAZCount];
+            availabilityZones.push(az);
+        }
+        return availabilityZones;
+    }
 }
 
 // Create a new VPC
@@ -30,19 +40,19 @@ aws.getAvailabilityZones().then((data) => {
     for (let i = 0; i < availabilityZones.length; i++) {
         const az = availabilityZones[i];
 
-        const publicSubnet = new aws.ec2.Subnet(`publicSubnet-${az}`, {
+        const publicSubnet = new aws.ec2.Subnet(`publicSubnet-${az}-${i}`, { // Append an index to ensure uniqueness
             vpcId: vpc.id,
             cidrBlock: `10.0.${i * 2}.0/24`,
             availabilityZone: az,
             mapPublicIpOnLaunch: true,
-            tags: { Name: `publicSubnet-${az}` },
+            tags: { Name: `publicSubnet-${az}-${i}` },
         });
 
-        const privateSubnet = new aws.ec2.Subnet(`privateSubnet-${az}`, {
+        const privateSubnet = new aws.ec2.Subnet(`privateSubnet-${az}-${i}`, { // Append an index to ensure uniqueness
             vpcId: vpc.id,
             cidrBlock: `10.0.${i * 2 + 1}.0/24`,
             availabilityZone: az,
-            tags: { Name: `privateSubnet-${az}` },
+            tags: { Name: `privateSubnet-${az}-${i}` },
         });
 
         publicSubnets.push(publicSubnet.id);
@@ -59,7 +69,7 @@ aws.getAvailabilityZones().then((data) => {
         const subnetId = publicSubnets[i];
         const az = availabilityZones[i];
 
-        const routeTableAssociation = new aws.ec2.RouteTableAssociation(`publicRouteTableAssociation-${az}`, {
+        const routeTableAssociation = new aws.ec2.RouteTableAssociation(`publicRouteTableAssociation-${az}-${i}`, {
             subnetId: subnetId,
             routeTableId: publicRouteTable.id,
         });
@@ -75,7 +85,7 @@ aws.getAvailabilityZones().then((data) => {
         const subnetId = privateSubnets[i];
         const az = availabilityZones[i];
 
-        const routeTableAssociation = new aws.ec2.RouteTableAssociation(`privateRouteTableAssociation-${az}`, {
+        const routeTableAssociation = new aws.ec2.RouteTableAssociation(`privateRouteTableAssociation-${az}-${i}`, {
             subnetId: subnetId,
             routeTableId: privateRouteTable.id,
         });
