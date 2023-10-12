@@ -1,26 +1,20 @@
 const pulumi = require("@pulumi/pulumi");
 const aws = require("@pulumi/aws");
+const { Constraint } = require("@pulumi/aws/servicecatalog");
 
-// Define the AWS region
 
+const config =  new pulumi.Config();
+const vpcCidrBlock = config.getSecret('cidrBlock');
+const publicCidrPrefix = config.get('publicCidrPrefix');
+const privateCidrPrefix = config.get('privateCidrPrefix');
 // Function to get the first N availability zones
 function getFirstNAvailabilityZones(data, n) {
-    const availableAZCount = data.names.length;
-    if (availableAZCount >= n) {
-        return data.names.slice(0, n);
-    } else {
-        const availabilityZones = [];
-        for (let i = 0; i < n; i++) {
-            const az = data.names[i % availableAZCount];
-            availabilityZones.push(az);
-        }
-        return availabilityZones;
-    }
+    return data.names.slice(0, n);
 }
 
 // Create a new VPC
 const vpc = new aws.ec2.Vpc("myVPC", {
-    cidrBlock: "10.0.0.0/16",
+    cidrBlock: vpcCidrBlock,
     enableDnsHostnames: true,
     enableDnsSupport: true,
 });
@@ -50,7 +44,7 @@ aws.getAvailabilityZones().then((data) => {
 
         const privateSubnet = new aws.ec2.Subnet(`privateSubnet-${az}-${i}`, { // Append an index to ensure uniqueness
             vpcId: vpc.id,
-            cidrBlock: `10.0.${i * 2 + 1}.0/24`,
+            cidrBlock: `10.0.${i * 2 + 10}.0/24`,
             availabilityZone: az,
             tags: { Name: `privateSubnet-${az}-${i}` },
         });
