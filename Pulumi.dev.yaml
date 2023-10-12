@@ -1,5 +1,5 @@
 encryptionsalt: v1:Atle3UOIe2c=:v1:b25GpZV0DS6ek0w9:XLvv7uwY3rv9cDngOQ1JZppQMhwrjg==
 config:
   aws:profile: dev_cli
-  aws:region: eu-east-1
+  aws:region: us-west-1
   pulumiinfra:cidrBlock: 10.0.0.0/16

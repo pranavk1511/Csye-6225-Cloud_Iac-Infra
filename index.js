@@ -5,8 +5,6 @@ const { Constraint } = require("@pulumi/aws/servicecatalog");
 
 const config =  new pulumi.Config();
 const vpcCidrBlock = config.getSecret('cidrBlock');
-const publicCidrPrefix = config.get('publicCidrPrefix');
-const privateCidrPrefix = config.get('privateCidrPrefix');
 
 // Function to get the first N availability zones
 function getFirstNAvailabilityZones(data, n) {
