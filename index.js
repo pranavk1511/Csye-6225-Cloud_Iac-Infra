@@ -1,9 +1,7 @@
 const pulumi = require("@pulumi/pulumi");
 const aws = require("@pulumi/aws");
-const { Constraint } = require("@pulumi/aws/servicecatalog");
 
-
-const config =  new pulumi.Config();
+const config = new pulumi.Config();
 const vpcCidrBlock = config.getSecret('cidrBlock');
 
 // Function to get the first N availability zones
@@ -33,7 +31,7 @@ aws.getAvailabilityZones().then((data) => {
     for (let i = 0; i < availabilityZones.length; i++) {
         const az = availabilityZones[i];
 
-        const publicSubnet = new aws.ec2.Subnet(`publicSubnet-${az}-${i}`, { // Append an index to ensure uniqueness
+        const publicSubnet = new aws.ec2.Subnet(`publicSubnet-${az}-${i}`, {
             vpcId: vpc.id,
             cidrBlock: `10.0.${i * 2}.0/24`,
             availabilityZone: az,
@@ -41,7 +39,7 @@ aws.getAvailabilityZones().then((data) => {
             tags: { Name: `publicSubnet-${az}-${i}` },
         });
 
-        const privateSubnet = new aws.ec2.Subnet(`privateSubnet-${az}-${i}`, { // Append an index to ensure uniqueness
+        const privateSubnet = new aws.ec2.Subnet(`privateSubnet-${az}-${i}`, {
             vpcId: vpc.id,
             cidrBlock: `10.0.${i * 2 + 10}.0/24`,
             availabilityZone: az,
@@ -91,8 +89,40 @@ aws.getAvailabilityZones().then((data) => {
         gatewayId: internetGateway.id,
     });
 
-    // Export the VPC and subnet IDs
+    // Create an EC2 security group
+    const ec2SecurityGroup = new aws.ec2.SecurityGroup("ec2SecurityGroup", {
+        vpcId: vpc.id,
+        ingress: [
+            {
+                protocol: "tcp",
+                fromPort: 22,
+                toPort: 22,
+                cidrBlocks: ["0.0.0.0/0"],
+            },
+            {
+                protocol: "tcp",
+                fromPort: 80,
+                toPort: 80,
+                cidrBlocks: ["0.0.0.0/0"],
+            },
+        ],
+    });
+
+    // Create an EC2 instance
+    const ec2Instance = new aws.ec2.Instance("ec2Instance", {
+        ami: "ami-02f4e2c25ae7d0c23", // Replace with your desired AMI ID
+        instanceType: "t2.micro",
+        subnetId: publicSubnets[0], // Launch in the first public subnet
+        vpcSecurityGroupIds: [ec2SecurityGroup.id],
+        keyName: "awskey", // Replace with your key pair name
+        tags: {
+            Name: "MyEC2Instance",
+        },
+    });
+
+    // Export the VPC, subnet IDs, and EC2 instance ID
     exports.vpcId = vpc.id;
     exports.publicSubnetIds = publicSubnets;
     exports.privateSubnetIds = privateSubnets;
+    exports.ec2InstanceId = ec2Instance.id;
 });
