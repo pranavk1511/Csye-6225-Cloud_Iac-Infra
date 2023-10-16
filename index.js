@@ -1,6 +1,7 @@
 const pulumi = require("@pulumi/pulumi");
 const aws = require("@pulumi/aws");
 
+
 const config = new pulumi.Config();
 const vpcCidrBlock = config.getSecret('cidrBlock');
 
@@ -30,6 +31,7 @@ aws.getAvailabilityZones().then((data) => {
 
     for (let i = 0; i < availabilityZones.length; i++) {
         const az = availabilityZones[i];
+
 
         const publicSubnet = new aws.ec2.Subnet(`publicSubnet-${az}-${i}`, {
             vpcId: vpc.id,
@@ -89,6 +91,7 @@ aws.getAvailabilityZones().then((data) => {
         gatewayId: internetGateway.id,
     });
 
+
     // Create an EC2 security group
     const ec2SecurityGroup = new aws.ec2.SecurityGroup("ec2SecurityGroup", {
         vpcId: vpc.id,
@@ -125,4 +128,5 @@ aws.getAvailabilityZones().then((data) => {
     exports.publicSubnetIds = publicSubnets;
     exports.privateSubnetIds = privateSubnets;
     exports.ec2InstanceId = ec2Instance.id;
+
 });
