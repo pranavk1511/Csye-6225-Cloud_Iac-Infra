@@ -108,16 +108,28 @@ aws.getAvailabilityZones().then((data) => {
                 toPort: 80,
                 cidrBlocks: ["0.0.0.0/0"],
             },
+            {
+                protocol: "tcp",
+                fromPort: 443,
+                toPort: 443,
+                cidrBlocks: ["0.0.0.0/0"],
+            },
+            {
+                protocol: "tcp",
+                fromPort: 3000,
+                toPort: 3000,
+                cidrBlocks: ["0.0.0.0/0"],
+            }
         ],
     });
 
     // Create an EC2 instance
     const ec2Instance = new aws.ec2.Instance("ec2Instance", {
-        ami: "ami-02f4e2c25ae7d0c23", // Replace with your desired AMI ID
+        ami: "ami-0380eb78e5201bfd6", // Replace with your desired AMI ID
         instanceType: "t2.micro",
         subnetId: publicSubnets[0], // Launch in the first public subnet
         vpcSecurityGroupIds: [ec2SecurityGroup.id],
-        keyName: "awskey", // Replace with your key pair name
+        keyName: "awskeydemo", // Replace with your key pair name
         tags: {
             Name: "MyEC2Instance",
         },
