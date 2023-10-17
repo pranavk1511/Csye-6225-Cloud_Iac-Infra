@@ -125,11 +125,16 @@ aws.getAvailabilityZones().then((data) => {
 
     // Create an EC2 instance
     const ec2Instance = new aws.ec2.Instance("ec2Instance", {
-        ami: "ami-0380eb78e5201bfd6", // Replace with your desired AMI ID
+        ami: "ami-0cd9800f15d59b557", // Replace with your desired AMI ID
         instanceType: "t2.micro",
         subnetId: publicSubnets[0], // Launch in the first public subnet
         vpcSecurityGroupIds: [ec2SecurityGroup.id],
-        keyName: "awskeydemo", // Replace with your key pair name
+        keyName: config.get('awskey'), // Replace with your key pair name
+        rootBlockDevice: {
+            volumeSize: 25, // Set the root volume size to 25 GB
+            volumeType: "gp2", // Set the root volume type to General Purpose SSD (GP2)
+            deleteOnTermination: false, // Protect against accidental termination
+        },
         tags: {
             Name: "MyEC2Instance",
         },

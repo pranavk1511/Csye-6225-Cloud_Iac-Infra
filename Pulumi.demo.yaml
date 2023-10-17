@@ -3,3 +3,4 @@ config:
   aws:profile: demo_cli
   aws:region: us-east-1
   pulumiinfra:cidrBlock: 10.0.0.0/16
+  pulumiinfra:awskey : awskeydemo
