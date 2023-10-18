@@ -125,7 +125,7 @@ aws.getAvailabilityZones().then((data) => {
 
     // Create an EC2 instance
     const ec2Instance = new aws.ec2.Instance("ec2Instance", {
-        ami: "ami-064f193770cbe3a28", // Replace with your desired AMI ID
+        ami: "ami-0fcd0aa6b1124aa24", // Replace with your desired AMI ID
         instanceType: "t2.micro",
         subnetId: publicSubnets[0], // Launch in the first public subnet
         vpcSecurityGroupIds: [ec2SecurityGroup.id],
