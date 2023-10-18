@@ -108,6 +108,7 @@ aws.getAvailabilityZones().then((data) => {
                 toPort: 80,
                 cidrBlocks: ["0.0.0.0/0"],
             },
+
             {
                 protocol: "tcp",
                 fromPort: 443,
@@ -120,6 +121,7 @@ aws.getAvailabilityZones().then((data) => {
                 toPort: 3000,
                 cidrBlocks: ["0.0.0.0/0"],
             }
+
         ],
     });
 
