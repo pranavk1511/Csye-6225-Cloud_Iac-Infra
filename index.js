@@ -203,7 +203,7 @@ aws.getAvailabilityZones().then((data) => {
 
     // Create an EC2 instance
     const ec2Instance = new aws.ec2.Instance("ec2Instance", {
-        ami: "ami-0dc225d04b3ef3a95", // Replace with your desired AMI ID
+        ami: "ami-060f9fbf8b4c721cc", // Replace with your desired AMI ID
         instanceType: "t2.micro",
         subnetId: publicSubnets[0], // Launch in the first public subnet
         vpcSecurityGroupIds: [ec2SecurityGroup.id],
@@ -211,11 +211,12 @@ aws.getAvailabilityZones().then((data) => {
         rootBlockDevice: {
             volumeSize: 25, // Set the root volume size to 25 GB
             volumeType: "gp2", // Set the root volume type to General Purpose SSD (GP2)
-            deleteOnTermination: true, // Protect against accidental termination
+            deleteOnTermination: true,
         },
         tags: {
             Name: "MyEC2Instance",
         },
+        dependsOn:[rdsInstance],
         userDataReplaceOnChange:true,
         userData:pulumi.interpolate`#!/bin/bash
 sudo mkdir /home/admin/asdb
@@ -227,6 +228,7 @@ sudo echo "DB_USER=root" >> /home/admin/WebApp/.env
 sudo echo "DB_PASSWORD=pranavkulkarni" >> /home/admin/WebApp/.env
 sudo echo "DB_NAME=Assignment3" >> /home/admin/WebApp/.env
 sudo echo "PORT=3000" >> /home/admin/WebApp/.env
+sudo echo "CSVPATH="/home/admin/WebApp/opt/users.csv" " >> /home/admin/WebApp/.env
 sudo cat /home/admin/WebApp/.env
 `,
     });
