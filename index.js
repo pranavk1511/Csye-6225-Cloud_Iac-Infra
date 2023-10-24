@@ -17,6 +17,9 @@ const vpc = new aws.ec2.Vpc("myVPC", {
     enableDnsSupport: true,
 });
 
+
+
+
 // Create an Internet Gateway
 const internetGateway = new aws.ec2.InternetGateway("myInternetGateway", {
     vpcId: vpc.id,
@@ -123,11 +126,84 @@ aws.getAvailabilityZones().then((data) => {
             }
 
         ],
+        egress : [
+            {
+                protocol: "-1", // All
+                fromPort: 0,
+                toPort: 0,
+                cidrBlocks: ["0.0.0.0/0"],
+            }
+        ]
     });
+
+    const dbSecurityGroup = new aws.ec2.SecurityGroup("dbSecurityGroup", {
+        vpcId: vpc.id,
+    });
+
+    const applicationSecurityGroup = new aws.ec2.SecurityGroup("applicationSecurityGroup", {
+        vpcId: vpc.id,
+    });
+
+    new aws.ec2.SecurityGroupRule("dbIngressRule", {
+        securityGroupId: dbSecurityGroup.id,
+        type: "ingress",
+        fromPort: 0, // MySQL/MariaDB port
+        toPort: 3306,
+        protocol: "tcp",
+        cidrBlocks: ["0.0.0.0/0"],
+    });
+
+    new aws.ec2.SecurityGroupRule("dbEgressRule", {
+        securityGroupId: dbSecurityGroup.id,
+        type: "egress",
+        fromPort: 0,
+        toPort: 65535,
+        protocol: "tcp",
+        cidrBlocks: ["0.0.0.0/0"],
+    });
+
+
+    const dbParameterGroup = new aws.rds.ParameterGroup("dbparametergroup", {
+        family: "mysql8.0", // Adjust the family based on your database engine
+        description: "Custom DB parameter group for CSYE6225 RDS instance",
+        parameters: [
+            {
+                name: "character_set_server",
+                value: "utf8mb4",
+            },
+            {
+                name: "collation_server",
+                value: "utf8mb4_general_ci",
+            },
+            // Add more parameters as needed for your specific configuration
+        ],
+    });
+    
+
+    const dbSubnetGroup = new aws.rds.SubnetGroup("dbSubnetGroup", {
+        subnetIds: privateSubnets, // Use the array of private subnet IDs
+        description: "DB Subnet Group for RDS instances",
+        name: "my-db-subnet-group", // Replace with a meaningful name
+    });
+
+    const rdsInstance = new aws.rds.Instance("rdsinstance", {
+        allocatedStorage: 20, // Adjust the storage size as needed
+        engine: "mysql", // Replace with your database engine (e.g., "mysql", "mariadb", or "postgres")
+        instanceClass: "db.t2.micro", // Choose the appropriate instance class
+        name: "Assignment3",
+        username: "root",
+        password: "pranavkulkarni", // Replace with your secure password
+        skipFinalSnapshot: true, // Change to true if you want to enable final snapshot
+        publiclyAccessible: false,
+        dbSubnetGroupName: dbSubnetGroup.name, // Replace with the name of your private subnet group
+        parameterGroupName: dbParameterGroup.name, // Use the custom parameter group
+        vpcSecurityGroupIds: [dbSecurityGroup.id], // Attach the database security group
+    });
+
 
     // Create an EC2 instance
     const ec2Instance = new aws.ec2.Instance("ec2Instance", {
-        ami: "ami-0fcd0aa6b1124aa24", // Replace with your desired AMI ID
+        ami: "ami-060f9fbf8b4c721cc", // Replace with your desired AMI ID
         instanceType: "t2.micro",
         subnetId: publicSubnets[0], // Launch in the first public subnet
         vpcSecurityGroupIds: [ec2SecurityGroup.id],
@@ -135,17 +211,33 @@ aws.getAvailabilityZones().then((data) => {
         rootBlockDevice: {
             volumeSize: 25, // Set the root volume size to 25 GB
             volumeType: "gp2", // Set the root volume type to General Purpose SSD (GP2)
-            deleteOnTermination: false, // Protect against accidental termination
+            deleteOnTermination: true,
+
         },
         tags: {
             Name: "MyEC2Instance",
         },
+        dependsOn:[rdsInstance],
+        userDataReplaceOnChange:true,
+        userData:pulumi.interpolate`#!/bin/bash
+sudo mkdir /home/admin/asdb
+sudo chmod a+w /home/admin/WebApp
+cd /home/admin/WebApp
+sudo rm -rf /home/admin/WebApp/.env
+sudo echo "DB_HOST=${rdsInstance.address}" >> /home/admin/WebApp/.env
+sudo echo "DB_USER=root" >> /home/admin/WebApp/.env
+sudo echo "DB_PASSWORD=pranavkulkarni" >> /home/admin/WebApp/.env
+sudo echo "DB_NAME=Assignment3" >> /home/admin/WebApp/.env
+sudo echo "PORT=3000" >> /home/admin/WebApp/.env
+sudo echo "CSVPATH="/home/admin/WebApp/opt/users.csv" " >> /home/admin/WebApp/.env
+sudo cat /home/admin/WebApp/.env
+`,
     });
-
     // Export the VPC, subnet IDs, and EC2 instance ID
     exports.vpcId = vpc.id;
     exports.publicSubnetIds = publicSubnets;
     exports.privateSubnetIds = privateSubnets;
     exports.ec2InstanceId = ec2Instance.id;
-
+    exports.rdsEndpoint = rdsInstance.endpoint;
+    
 });
