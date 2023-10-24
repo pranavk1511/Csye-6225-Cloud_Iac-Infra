@@ -212,6 +212,7 @@ aws.getAvailabilityZones().then((data) => {
             volumeSize: 25, // Set the root volume size to 25 GB
             volumeType: "gp2", // Set the root volume type to General Purpose SSD (GP2)
             deleteOnTermination: true,
+
         },
         tags: {
             Name: "MyEC2Instance",
