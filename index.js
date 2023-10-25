@@ -136,31 +136,27 @@ aws.getAvailabilityZones().then((data) => {
         ]
     });
 
-    const dbSecurityGroup = new aws.ec2.SecurityGroup("dbSecurityGroup", {
+
+    const rdsSecurityGroup = new aws.ec2.SecurityGroup("rdsSecurityGroup", {
+        description: "RDS security group",
         vpcId: vpc.id,
-    });
-
-    const applicationSecurityGroup = new aws.ec2.SecurityGroup("applicationSecurityGroup", {
-        vpcId: vpc.id,
-    });
-
-    new aws.ec2.SecurityGroupRule("dbIngressRule", {
-        securityGroupId: dbSecurityGroup.id,
-        type: "ingress",
-        fromPort: 0, // MySQL/MariaDB port
-        toPort: 3306,
-        protocol: "tcp",
-        cidrBlocks: ["0.0.0.0/0"],
-    });
-
-    new aws.ec2.SecurityGroupRule("dbEgressRule", {
-        securityGroupId: dbSecurityGroup.id,
-        type: "egress",
-        fromPort: 0,
-        toPort: 65535,
-        protocol: "tcp",
-        cidrBlocks: ["0.0.0.0/0"],
-    });
+        ingress: [
+          {
+            protocol: "tcp",
+            fromPort: 3306,
+            toPort: 3306,
+            securityGroups: [ec2SecurityGroup.id],
+          },
+        ],
+        egress: [
+          {
+            protocol: "-1", // All
+            fromPort: 0, 
+            toPort: 0, 
+            cidrBlocks: ["0.0.0.0/0"], 
+          },  
+        ],
+      });
 
 
     const dbParameterGroup = new aws.rds.ParameterGroup("dbparametergroup", {
@@ -197,13 +193,13 @@ aws.getAvailabilityZones().then((data) => {
         publiclyAccessible: false,
         dbSubnetGroupName: dbSubnetGroup.name, // Replace with the name of your private subnet group
         parameterGroupName: dbParameterGroup.name, // Use the custom parameter group
-        vpcSecurityGroupIds: [dbSecurityGroup.id], // Attach the database security group
+        vpcSecurityGroupIds: [rdsSecurityGroup.id], // Attach the database security group
     });
 
 
     // Create an EC2 instance
     const ec2Instance = new aws.ec2.Instance("ec2Instance", {
-        ami: "ami-0f377e53e0b3714b8", // Replace with your desired AMI ID
+        ami: "ami-02da0825a6abb1866", // Replace with your desired AMI ID
         instanceType: "t2.micro",
         subnetId: publicSubnets[0], // Launch in the first public subnet
         vpcSecurityGroupIds: [ec2SecurityGroup.id],
