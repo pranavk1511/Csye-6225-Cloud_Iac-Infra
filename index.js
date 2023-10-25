@@ -4,7 +4,7 @@ const aws = require("@pulumi/aws");
 
 const config = new pulumi.Config();
 const vpcCidrBlock = config.getSecret('cidrBlock');
-
+const dbPassword = config.get('dbpassword'); 
 // Function to get the first N availability zones
 function getFirstNAvailabilityZones(data, n) {
     return data.names.slice(0, n);
@@ -226,7 +226,7 @@ cd /home/admin/WebApp
 sudo rm -rf /home/admin/WebApp/.env
 sudo echo "DB_HOST=${rdsInstance.address}" >> /home/admin/WebApp/.env
 sudo echo "DB_USER=root" >> /home/admin/WebApp/.env
-sudo echo "DB_PASSWORD=pranavkulkarni" >> /home/admin/WebApp/.env
+sudo echo "DB_PASSWORD=${dbPassword}" >> /home/admin/WebApp/.env
 sudo echo "DB_NAME=Assignment3" >> /home/admin/WebApp/.env
 sudo echo "PORT=3000" >> /home/admin/WebApp/.env
 sudo echo "CSVPATH="/home/admin/WebApp/opt/users.csv" " >> /home/admin/WebApp/.env
