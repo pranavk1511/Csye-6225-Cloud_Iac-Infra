@@ -17,9 +17,6 @@ const vpc = new aws.ec2.Vpc("myVPC", {
     enableDnsSupport: true,
 });
 
-
-
-
 // Create an Internet Gateway
 const internetGateway = new aws.ec2.InternetGateway("myInternetGateway", {
     vpcId: vpc.id,
@@ -60,7 +57,6 @@ aws.getAvailabilityZones().then((data) => {
         vpcId: vpc.id,
         tags: { Name: "publicRouteTable" },
     });
-
     for (let i = 0; i < publicSubnets.length; i++) {
         const subnetId = publicSubnets[i];
         const az = availabilityZones[i];
@@ -94,35 +90,49 @@ aws.getAvailabilityZones().then((data) => {
         gatewayId: internetGateway.id,
     });
 
-
-    // Create an EC2 security group
-    const ec2SecurityGroup = new aws.ec2.SecurityGroup("ec2SecurityGroup", {
+    const loadBalancerSecurityGroup = new aws.ec2.SecurityGroup("loadBalancerSecurityGroup", {
         vpcId: vpc.id,
         ingress: [
-            {
-                protocol: "tcp",
-                fromPort: 22,
-                toPort: 22,
-                cidrBlocks: ["0.0.0.0/0"],
-            },
             {
                 protocol: "tcp",
                 fromPort: 80,
                 toPort: 80,
                 cidrBlocks: ["0.0.0.0/0"],
             },
-
             {
                 protocol: "tcp",
                 fromPort: 443,
                 toPort: 443,
                 cidrBlocks: ["0.0.0.0/0"],
             },
+        ],
+        egress: [
+            {
+                protocol: "-1", // All
+                fromPort: 0,
+                toPort: 0,
+                cidrBlocks: ["0.0.0.0/0"],
+            },
+        ],
+        tags:{
+            Name:"Pulumi Genertated Load Balancer "
+        },
+    });
+    // Create an EC2 security group
+    const ec2SecurityGroup = new aws.ec2.SecurityGroup("ApplicationSecurityGroup", {
+        vpcId: vpc.id,
+        ingress: [
+            {
+                protocol: "tcp",
+                fromPort: 22,
+                toPort: 22,
+                securityGroups: [loadBalancerSecurityGroup.id] ,
+            },
             {
                 protocol: "tcp",
                 fromPort: 3000,
                 toPort: 3000,
-                cidrBlocks: ["0.0.0.0/0"],
+                securityGroups: [loadBalancerSecurityGroup.id],
             }
 
         ],
@@ -196,44 +206,254 @@ aws.getAvailabilityZones().then((data) => {
         vpcSecurityGroupIds: [rdsSecurityGroup.id], // Attach the database security group
     });
 
-
-    // Create an EC2 instance
-    const ec2Instance = new aws.ec2.Instance("ec2Instance", {
-        ami: "ami-02da0825a6abb1866", // Replace with your desired AMI ID
-        instanceType: "t2.micro",
-        subnetId: publicSubnets[0], // Launch in the first public subnet
-        vpcSecurityGroupIds: [ec2SecurityGroup.id],
-        keyName: config.get('awskey'), // Replace with your key pair name
-        rootBlockDevice: {
-            volumeSize: 25, // Set the root volume size to 25 GB
-            volumeType: "gp2", // Set the root volume type to General Purpose SSD (GP2)
-            deleteOnTermination: true,
-
-        },
-        tags: {
-            Name: "MyEC2Instance",
-        },
-        dependsOn:[rdsInstance],
-        userDataReplaceOnChange:true,
-        userData:pulumi.interpolate`#!/bin/bash
-sudo mkdir /home/admin/asdb
-sudo chmod a+w /home/admin/WebApp
-cd /home/admin/WebApp
-sudo rm -rf /home/admin/WebApp/.env
-sudo echo "DB_HOST=${rdsInstance.address}" >> /home/admin/WebApp/.env
-sudo echo "DB_USER=root" >> /home/admin/WebApp/.env
-sudo echo "DB_PASSWORD=${dbPassword}" >> /home/admin/WebApp/.env
-sudo echo "DB_NAME=Assignment3" >> /home/admin/WebApp/.env
-sudo echo "PORT=3000" >> /home/admin/WebApp/.env
-sudo echo "CSVPATH="/home/admin/WebApp/opt/users.csv" " >> /home/admin/WebApp/.env
-sudo cat /home/admin/WebApp/.env
-`,
+    let role = new aws.iam.Role("role", {
+        assumeRolePolicy: JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [{
+                Action: "sts:AssumeRole",
+                Principal: {
+                    Service: "ec2.amazonaws.com"
+                },
+                Effect: "Allow",
+            }]
+        })
+    })
+     
+     
+    let policyAttachment = new aws.iam.RolePolicyAttachment("policyAttachment", {
+        role: role.name,
+        policyArn: "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+    })
+     
+    let instanceProfile = new aws.iam.InstanceProfile("myInstanceProfile", {
+        role: role.name
     });
+
+
+
+
+
+// Create an EC2 instance
+// const ec2Instance = new aws.ec2.Instance("ec2Instance", {
+//         ami: "ami-00ea6dcd40e40ccba", // Replace with your desired AMI ID
+//         instanceType: "t2.micro",
+//         subnetId: publicSubnets[0], // Launch in the first public subnet
+//         vpcSecurityGroupIds: [ec2SecurityGroup.id],
+//         keyName: config.get('awskey'), // Replace with your key pair name
+//         rootBlockDevice: {
+//             volumeSize: 25, // Set the root volume size to 25 GB
+//             volumeType: "gp2", // Set the root volume type to General Purpose SSD (GP2)
+//             deleteOnTermination: true,
+
+//         },
+//         tags: {
+//             Name: "MyEC2Instance",
+//         },
+//         dependsOn:[rdsInstance],
+//         iamInstanceProfile: instanceProfile.name,
+//         userDataReplaceOnChange:true,
+//         userData:pulumi.interpolate`#!/bin/bash
+//         cd /opt/csye6225
+//         rm /opt/csye6225/.env
+//         touch /opt/csye6225/.env
+// sudo echo "DB_HOST=${rdsInstance.address}" >> /opt/csye6225/.env
+// sudo echo "DB_USER=root" >> /opt/csye6225/.env
+// sudo echo "DB_PASSWORD=${dbPassword}" >> /opt/csye6225/.env
+// sudo echo "DB_NAME=Assignment3" >> /opt/csye6225/.env
+// sudo echo "PORT=3000" >> /opt/csye6225/.env
+// sudo echo "CSVPATH="/opt/csye6225/opt/users.csv" " >> /opt/csye6225/.env
+// sudo cat /opt/csye6225/.env
+// sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+//     -a fetch-config \
+//     -m ec2 \
+//     -c file:/opt/csye6225/cloudwatch-config.json \
+//     -s
+// sudo systemctl enable nodeserver
+// sudo systemctl start nodeserver
+// sudo systemctl restart nodeserver
+// sudo systemctl status nodeserver
+// sudo systemctl enable amazon-cloudwatch-agent
+// sudo systemctl start amazon-cloudwatch-agent
+// `,
+// });
+
+const domainName = "demo.pranavkulkarni.me"; 
+
+const loadBalancer = new aws.lb.LoadBalancer("webAppLoadBalancer", {
+    internal: false,
+    enableDeletionProtection: false, // Set to true if you want to enable deletion protection
+    securityGroups: [loadBalancerSecurityGroup.id],
+    subnets: publicSubnets, // Use public subnets for the load balancer
+    enableHttp2: true,
+});
+
+const route53Record = new aws.route53.Record(`${domainName}-record`, {
+    name: domainName,
+    type: "A",
+    zoneId: "Z02305757Q1YWNITYCTM",  // Replace with your Route53 hosted zone ID
+    aliases: [
+        {
+            name: loadBalancer.dnsName,
+            zoneId: loadBalancer.zoneId,
+            evaluateTargetHealth: true,
+        },
+    ],
+});
+// Load balancer security Group 
+
+const base64UserData = pulumi.output(rdsInstance.address).apply(dbHost => {
+    const userData = `#!/bin/bash
+        cd /opt/csye6225
+        rm /opt/csye6225/.env
+        touch /opt/csye6225/.env
+        sudo echo "DB_HOST=${dbHost}" >> /opt/csye6225/.env
+        sudo echo "DB_USER=root" >> /opt/csye6225/.env
+        sudo echo "DB_PASSWORD=pranavkulkarni" >> /opt/csye6225/.env
+        sudo echo "DB_NAME=Assignment3" >> /opt/csye6225/.env
+        sudo echo "PORT=3000" >> /opt/csye6225/.env
+        sudo echo 'CSVPATH="/opt/csye6225/opt/users.csv" ' >> /opt/csye6225/.env
+        sudo cat /opt/csye6225/.env
+        sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+            -a fetch-config \
+            -m ec2 \
+            -c file:/opt/csye6225/cloudwatch-config.json \
+            -s
+        sudo systemctl enable nodeserver
+        sudo systemctl start nodeserver
+        sudo systemctl restart nodeserver
+        sudo systemctl status nodeserver
+        sudo systemctl enable amazon-cloudwatch-agent
+        sudo systemctl start amazon-cloudwatch-agent
+    `;
+
+    return Buffer.from(userData).toString('base64');
+});
+
+
+const launchTemplate = new aws.ec2.LaunchTemplate("webAppLaunchTemplate", {
+    imageId: "ami-0ce4974d96bf64e34", // Replace with your custom AMI ID
+    instanceType: "t2.micro",
+    keyName: config.get('awskey'), // Replace with your AWS key name
+    associatePublicIpAddress: true,
+    dependsOn:[rdsInstance],
+    userData: base64UserData,
+    iamInstanceProfile: {
+        name: instanceProfile.name,
+    }, // Use the existing IAM instance profile 
+    blockDeviceMappings: [
+        {
+            deviceName: "/dev/xvda",
+            ebs: {
+                deleteOnTermination: true,
+                volumeSize: 25,
+                volumeType: "gp2",
+            },
+        },
+    ],
+    
+    networkInterfaces: [
+        {
+            associatePublicIpAddress: true,
+            deleteOnTermination: true,
+            securityGroups: [ec2SecurityGroup.id],
+        },
+    ],
+     
+    tagSpecifications: [
+        {
+            resourceType: "instance",
+            tags: {
+                Name: "asg_launch_config",
+            },
+        },
+    ],
+});
+const targetGroup = new aws.lb.TargetGroup("webAppTargetGroup", {
+    port: 3000,
+    protocol: "HTTP",
+    vpcId: vpc.id,
+    healthCheck: {
+        path: "/healthz", // You might need to adjust this based on your application's health check endpoint
+        port: 3000,
+    }
+});
+
+// Auto Scaling Group
+const autoScalingGroup = new aws.autoscaling.Group("webAppAutoScalingGroup", {
+    cooldown: 60,
+    launchTemplate: {
+        id: launchTemplate.id,
+        version: launchTemplate.latestVersion,
+    },
+    minSize: 1,
+    maxSize: 3,
+    desiredCapacity: 1,
+    vpcZoneIdentifiers: publicSubnets, // Use the public subnets for the Auto Scaling Group
+    tags: [{ key: "Name", value: "WebAppInstance", propagateAtLaunch: true }],
+    targetGroupArns: [targetGroup.arn]
+}, { dependsOn: [launchTemplate] });
+
+// Auto Scaling Policies
+const scaleUpPolicy = new aws.autoscaling.Policy("scaleUpPolicy", {
+    scalingAdjustment: 1,
+    adjustmentType: "ChangeInCapacity",
+    cooldown: 60,
+    autoscalingGroupName: autoScalingGroup.name,
+});
+
+const scaleDownPolicy = new aws.autoscaling.Policy("scaleDownPolicy", {
+    scalingAdjustment: -1,
+    adjustmentType: "ChangeInCapacity",
+    cooldown: 60,
+    autoscalingGroupName: autoScalingGroup.name,
+});
+
+
+// Alarms for scaling 
+const cpuUtilizationAlarmHigh = new aws.cloudwatch.MetricAlarm("cpuUtilizationAlarmHigh", {
+    comparisonOperator: "GreaterThanThreshold",
+    evaluationPeriods: 1,
+    metricName: "CPUUtilization",
+    namespace: "AWS/EC2",
+    period: 60,
+    threshold: 5,
+    statistic: "Average",
+    alarmActions: [scaleUpPolicy.arn],
+    dimensions: { AutoScalingGroupName: asg.name },
+});
+ 
+const cpuUtilizationAlarmLow = new aws.cloudwatch.MetricAlarm("cpuUtilizationAlarmLow", {
+    comparisonOperator: "LessThanThreshold",
+    evaluationPeriods: 1,
+    metricName: "CPUUtilization",
+    namespace: "AWS/EC2",
+    period: 60,
+    statistic: "Average",
+    threshold: 3,
+    alarmActions: [scaleDownPolicy.arn],
+    dimensions: { AutoScalingGroupName: asg.name },
+});
+// Application Load Balancer
+
+
+
+const listener = new aws.lb.Listener("webAppListener", {
+    loadBalancerArn: loadBalancer.arn,
+    port: 80,
+    protocol: "HTTP",
+    defaultActions: [{
+        type: "forward",
+        targetGroupArn: targetGroup.arn,
+    }],
+},{ dependsOn: [targetGroup] });
+
+
+
     // Export the VPC, subnet IDs, and EC2 instance ID
     exports.vpcId = vpc.id;
     exports.publicSubnetIds = publicSubnets;
     exports.privateSubnetIds = privateSubnets;
-    exports.ec2InstanceId = ec2Instance.id;
     exports.rdsEndpoint = rdsInstance.endpoint;
+    exports.route53Record=route53Record.id;
     
 });
