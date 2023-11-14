@@ -419,6 +419,7 @@ const cpuUtilizationAlarmHigh = new aws.cloudwatch.MetricAlarm("cpuUtilizationAl
     threshold: 5,
     statistic: "Average",
     alarmActions: [scaleUpPolicy.arn],
+    TreatMissingData: "notBreaching",
     dimensions: { AutoScalingGroupName: autoScalingGroup.name },
 });
  
@@ -431,6 +432,7 @@ const cpuUtilizationAlarmLow = new aws.cloudwatch.MetricAlarm("cpuUtilizationAla
     statistic: "Average",
     threshold: 3,
     alarmActions: [scaleDownPolicy.arn],
+    TreatMissingData: "notBreaching",
     dimensions: { AutoScalingGroupName: autoScalingGroup.name },
 });
 // Application Load Balancer
