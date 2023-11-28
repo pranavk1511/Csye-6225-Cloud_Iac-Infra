@@ -2,6 +2,8 @@ encryptionsalt: v1:cYaBahWXQYk=:v1:3X3xIcMiuiGKWuDI:nUFT1Rsj32C2lCSXZfkRbdoIr0R7
 config:
   aws:profile: demo_cli
   aws:region: us-east-1
+  gcp:project: "644240397023"
+  pulumiinfra:awskey: awskeydemo
   pulumiinfra:cidrBlock: 10.0.0.0/16
-  pulumiinfra:awskey : awskeydemo
-  pulumiinfra:dbpassword : pranavkulkarni
+  pulumiinfra:dbpassword: pranavkulkarni
+  pulumiinfra:region: us-east-1
