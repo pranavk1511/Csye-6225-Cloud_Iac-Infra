@@ -621,9 +621,7 @@ const dynamoDBTable = new aws.dynamodb.Table("dynamoDBTable", {
       },
     ],
   });
-
-
-
+  
 // Create an IAM policy for DynamoDB access
 const dynamoDBPolicy = new aws.iam.Policy("DynamoDBAccessPolicy", {
     policy: {
