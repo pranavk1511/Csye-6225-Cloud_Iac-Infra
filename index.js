@@ -295,7 +295,7 @@ const base64UserData = pulumi.all([rdsInstance.address, topic.arn]).apply(([dbHo
 
 
 const launchTemplate = new aws.ec2.LaunchTemplate("webAppLaunchTemplate", {
-    imageId: "ami-0e7cd21de800894d8", // Replace with your custom AMI ID
+    imageId: "ami-06b1140a56a72c0d3", // Replace with your custom AMI ID
     instanceType: "t2.micro",
     keyName: config.get('awskey'), // Replace with your AWS key name
     associatePublicIpAddress: true,
@@ -581,34 +581,47 @@ const lambdaPermission = new aws.lambda.Permission("with_sns", {
 const dynamoDBTable = new aws.dynamodb.Table("dynamoDBTable", {
     name: "Csye6225_Demo_DynamoDB",
     attributes: [
-        {
-            name: "email",
-            type: "S",
-        },
-        {
-            name: "status",
-            type: "S",
-        },
-        {
-            name: "timestamp",
-            type: "S",
-        },
+      {
+        name: "id",
+        type: "S",
+      },
+      {
+        name: "status",
+        type: "S",
+      },
+      {
+        name: "timestamp",
+        type: "S",
+      },
+      {
+        name: "email",
+        type: "S",
+      },
     ],
-    hashKey: "email",
+    hashKey: "id",
     rangeKey: "status",
     readCapacity: 5,
     writeCapacity: 5,
     globalSecondaryIndexes: [
-        {
-            name: "TimestampIndex",
-            hashKey: "timestamp",
-            rangeKey: "email",
-            projectionType: "ALL",
-            readCapacity: 5,
-            writeCapacity: 5,
-        },
+      {
+        name: "TimestampIndex",
+        hashKey: "timestamp",
+        rangeKey: "id",
+        projectionType: "ALL",
+        readCapacity: 5,
+        writeCapacity: 5,
+      },
+      {
+        name: "EmailIndex",
+        hashKey: "email",
+        rangeKey: "id",
+        projectionType: "ALL",
+        readCapacity: 5,
+        writeCapacity: 5,
+      },
     ],
-});
+  });
+  
 // Create an IAM policy for DynamoDB access
 const dynamoDBPolicy = new aws.iam.Policy("DynamoDBAccessPolicy", {
     policy: {
