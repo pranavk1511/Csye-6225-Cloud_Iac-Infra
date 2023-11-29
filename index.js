@@ -4,7 +4,7 @@ const gcp = require("@pulumi/gcp");
 
 const config = new pulumi.Config();
 const vpcCidrBlock = config.getSecret('cidrBlock');
-
+const mailgun = config.get('mailgun')
 
 
 // Function to get the first N availability zones
@@ -295,7 +295,7 @@ const base64UserData = pulumi.all([rdsInstance.address, topic.arn]).apply(([dbHo
 
 
 const launchTemplate = new aws.ec2.LaunchTemplate("webAppLaunchTemplate", {
-    imageId: "ami-06b1140a56a72c0d3", // Replace with your custom AMI ID
+    imageId: "ami-0295f6134e81fbd22", // Replace with your custom AMI ID
     instanceType: "t2.micro",
     keyName: config.get('awskey'), // Replace with your AWS key name
     associatePublicIpAddress: true,
@@ -550,6 +550,7 @@ const lambdaFunction = new aws.lambda.Function("LambdaFunction", {
         variables: {
             GCP_PRIVATE_KEY: googleServiceAccountKey.privateKey,
             GCS_BUCKET_NAME: gcsBucket.name,
+            MAIL_GUN_API_KEY:mailgun
         },
     },
 });
@@ -621,7 +622,6 @@ const dynamoDBTable = new aws.dynamodb.Table("dynamoDBTable", {
       },
     ],
   });
-  
 // Create an IAM policy for DynamoDB access
 const dynamoDBPolicy = new aws.iam.Policy("DynamoDBAccessPolicy", {
     policy: {
