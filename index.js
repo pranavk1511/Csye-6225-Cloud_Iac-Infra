@@ -295,7 +295,7 @@ const base64UserData = pulumi.all([rdsInstance.address, topic.arn]).apply(([dbHo
 
 
 const launchTemplate = new aws.ec2.LaunchTemplate("webAppLaunchTemplate", {
-    imageId: "ami-0295f6134e81fbd22", // Replace with your custom AMI ID
+    imageId: "ami-02eb84780cf600edb", // Replace with your custom AMI ID
     instanceType: "t2.micro",
     keyName: config.get('awskey'), // Replace with your AWS key name
     associatePublicIpAddress: true,
