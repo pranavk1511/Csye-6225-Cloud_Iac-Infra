@@ -295,7 +295,9 @@ const base64UserData = pulumi.all([rdsInstance.address, topic.arn]).apply(([dbHo
 
 
 const launchTemplate = new aws.ec2.LaunchTemplate("webAppLaunchTemplate", {
-    imageId: "ami-02eb84780cf600edb", // Replace with your custom AMI ID
+    name:"webAppLaunchTemplate",
+    imageId:"ami-007c5eed87ee09ce4",
+    // imageId: "ami-02eb84780cf600edb", // Replace with your custom AMI ID
     instanceType: "t2.micro",
     keyName: config.get('awskey'), // Replace with your AWS key name
     associatePublicIpAddress: true,
@@ -345,10 +347,11 @@ const targetGroup = new aws.lb.TargetGroup("webAppTargetGroup", {
 
 // Auto Scaling Group
 const autoScalingGroup = new aws.autoscaling.Group("webAppAutoScalingGroup", {
+    name:"webAppAutoScalingGroup",
     cooldown: 60,
     launchTemplate: {
         id: launchTemplate.id,
-        version: launchTemplate.latestVersion,
+        version: '$Latest',
     },
     minSize: 1,
     maxSize: 3,
@@ -406,8 +409,9 @@ const cpuUtilizationAlarmLow = new aws.cloudwatch.MetricAlarm("cpuUtilizationAla
 
 const listener = new aws.lb.Listener("webAppListener", {
     loadBalancerArn: loadBalancer.arn,
-    port: 80,
-    protocol: "HTTP",
+    port: 443,
+    protocol: "HTTPS",
+    certificateArn:"arn:aws:acm:us-east-1:009251910612:certificate/a75434f8-21c6-4710-bc7d-8890110a20ca",
     defaultActions: [{
         type: "forward",
         targetGroupArn: targetGroup.arn,
@@ -543,16 +547,17 @@ const lambdaFunction = new aws.lambda.Function("LambdaFunction", {
     dependsOn: [s3Bucket],
     functionName: "emailVerify",
     role: lambdaRole.arn,
-    runtime: "nodejs18.x",
+    runtime: "nodejs14.x", // Note: Updated to a valid Node.js runtime version
     handler: "index.handler",
     code:  lambdaCode,
     environment: {
         variables: {
             GCP_PRIVATE_KEY: googleServiceAccountKey.privateKey,
             GCS_BUCKET_NAME: gcsBucket.name,
-            MAIL_GUN_API_KEY:mailgun
+            MAIL_GUN_API_KEY: mailgun
         },
     },
+    timeout: 60, // Set the timeout to 60 seconds (1 minute)
 });
  
 const snsSubscription = new aws.sns.TopicSubscription(`SNSSubscription`, {
