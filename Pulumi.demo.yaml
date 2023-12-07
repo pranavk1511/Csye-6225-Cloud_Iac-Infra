@@ -6,4 +6,5 @@ config:
   pulumiinfra:awskey: awskeydemo
   pulumiinfra:cidrBlock: 10.0.0.0/16
   pulumiinfra:dbpassword: pranavkulkarni
+  pulumiinfra:mailgun: 
   pulumiinfra:region: us-east-1
